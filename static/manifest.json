@@ -1,0 +1,24 @@
+{
+  "name": "Invoice OCR",
+  "short_name": "OCR Facturas",
+  "description": "Escanea facturas y extrae datos automáticamente",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#1e40af",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='24' fill='%231e40af'/%3E%3Cpath d='M48 40h70l34 34v78H48z' fill='white' opacity='.15'/%3E%3Cpath d='M48 40h70l34 34v78H48z' fill='none' stroke='white' stroke-width='6'/%3E%3Cpath d='M118 40v34h34' fill='none' stroke='white' stroke-width='6'/%3E%3Crect x='64' y='96' width='64' height='6' rx='3' fill='white'/%3E%3Crect x='64' y='112' width='48' height='6' rx='3' fill='white'/%3E%3Crect x='64' y='128' width='56' height='6' rx='3' fill='white'/%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='64' fill='%231e40af'/%3E%3Cpath d='M128 106h186l90 90v210H128z' fill='white' opacity='.15'/%3E%3Cpath d='M128 106h186l90 90v210H128z' fill='none' stroke='white' stroke-width='16'/%3E%3Cpath d='M314 106v90h90' fill='none' stroke='white' stroke-width='16'/%3E%3Crect x='170' y='256' width='172' height='16' rx='8' fill='white'/%3E%3Crect x='170' y='298' width='128' height='16' rx='8' fill='white'/%3E%3Crect x='170' y='340' width='150' height='16' rx='8' fill='white'/%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

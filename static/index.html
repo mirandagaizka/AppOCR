@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1e40af" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="OCR Facturas" />
+  <title>Invoice OCR</title>
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="36" height="36" rx="8" fill="#1e40af"/>
+      <path d="M9 7h12l6 6v16H9z" fill="white" opacity=".15"/>
+      <path d="M9 7h12l6 6v16H9z" fill="none" stroke="white" stroke-width="1.5"/>
+      <path d="M21 7v6h6" fill="none" stroke="white" stroke-width="1.5"/>
+      <rect x="12" y="18" width="12" height="1.5" rx=".75" fill="white"/>
+      <rect x="12" y="21.5" width="9" height="1.5" rx=".75" fill="white"/>
+      <rect x="12" y="25" width="10" height="1.5" rx=".75" fill="white"/>
+    </svg>
+    <div>
+      <h1>Invoice OCR</h1>
+      <span>Escaneo automático de facturas</span>
+    </div>
+  </header>
+
+  <!-- AUTH SCREEN -->
+  <div id="auth-screen" style="display:none; flex-direction:column; align-items:center; justify-content:center; gap:20px; flex:1; padding:32px 0;">
+    <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+      <rect width="56" height="56" rx="14" fill="#1e293b"/>
+      <path d="M28 14a8 8 0 0 1 8 8v4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H18a2 2 0 0 1-2-2V28a2 2 0 0 1 2-2h2v-4a8 8 0 0 1 8-8z" fill="#3b82f6" opacity=".3"/>
+      <path d="M28 14a8 8 0 0 1 8 8v4H20v-4a8 8 0 0 1 8-8z" stroke="#3b82f6" stroke-width="2" fill="none"/>
+      <rect x="16" y="26" width="24" height="18" rx="2" stroke="#3b82f6" stroke-width="2" fill="none"/>
+      <circle cx="28" cy="35" r="3" fill="#3b82f6"/>
+    </svg>
+    <h2>Acceso protegido</h2>
+    <p>Introduce la clave configurada en el servidor</p>
+    <input id="pin-input" class="pin-input" type="password" placeholder="Clave de acceso" autocomplete="off" />
+    <button id="btn-auth-ok" class="btn btn-primary">Acceder</button>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <main id="main-content" class="hidden">
+
+    <!-- SCAN SECTION -->
+    <div id="scan-section" style="display:flex; flex-direction:column; gap:16px;">
+
+      <!-- Drop zone / cámara -->
+      <div id="drop-zone" class="drop-zone">
+        <input id="file-input" type="file" accept="image/*,application/pdf" capture="environment" />
+        <div class="icon">📷</div>
+        <div class="label">Fotografía la factura</div>
+        <div class="hint">O arrastra un archivo JPG, PNG, WEBP o PDF</div>
+      </div>
+
+      <!-- Preview -->
+      <div id="preview-wrap" style="display:none; flex-direction:column; align-items:center; gap:12px; background:var(--surface); border-radius:var(--radius); padding:16px;">
+        <img id="preview-img" src="" alt="Vista previa" style="max-width:100%; max-height:300px; border-radius:8px; object-fit:contain; display:none;" />
+        <div id="preview-name" style="font-size:.85rem; color:var(--text-muted);"></div>
+        <div style="display:flex; gap:10px; width:100%;">
+          <button id="btn-clear" class="btn btn-secondary" style="flex:1;">Cambiar</button>
+          <button id="btn-process" class="btn btn-primary" style="flex:2;">Procesar factura</button>
+        </div>
+      </div>
+
+      <!-- Spinner -->
+      <div id="status" style="display:none; flex-direction:column; align-items:center; gap:12px; padding:28px; background:var(--surface); border-radius:var(--radius); text-align:center;">
+        <div class="spinner"></div>
+        <div id="status-text" style="font-size:.95rem; color:var(--text-muted);">Procesando…</div>
+      </div>
+
+      <!-- Resultado -->
+      <div id="result" style="display:none; flex-direction:column; gap:0; background:var(--surface); border-radius:var(--radius); overflow:hidden;">
+        <div class="result-header" style="background:var(--success); padding:14px 20px; display:flex; align-items:center; gap:10px; font-weight:700;">
+          <span>✓</span> Factura registrada correctamente
+        </div>
+        <div id="result-fields" class="result-body"></div>
+        <div class="result-actions" style="padding:0 20px 16px; display:flex; flex-direction:column; gap:10px;">
+          <button id="btn-download-pdf" class="btn btn-secondary">Descargar PDF</button>
+          <button id="btn-scan-another" class="btn btn-primary">Escanear otra factura</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- REGISTRY SECTION -->
+    <div id="registry" style="display:none; flex-direction:column; gap:12px;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2>Registro de facturas</h2>
+        <button id="btn-download-xls" class="btn btn-ghost btn-sm">⬇ Excel</button>
+      </div>
+      <div id="inv-list" style="display:flex; flex-direction:column; gap:10px;"></div>
+    </div>
+
+  </main>
+
+  <!-- BOTTOM NAV -->
+  <nav>
+    <button id="nav-scan" class="nav-btn active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="3" width="20" height="14" rx="2"/>
+        <path d="M8 21h8M12 17v4"/>
+        <path d="M7 8h.01M7 12h.01M11 8h6M11 12h6"/>
+      </svg>
+      Escanear
+    </button>
+    <button id="nav-registry" class="nav-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+        <rect x="9" y="3" width="6" height="4" rx="1"/>
+        <path d="M9 12h6M9 16h4"/>
+      </svg>
+      Registro
+    </button>
+  </nav>
+</div>
+
+<div id="toast"></div>
+
+<script src="/app.js"></script>
+</body>
+</html>

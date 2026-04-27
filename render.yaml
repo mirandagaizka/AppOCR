@@ -1,0 +1,24 @@
+databases:
+  - name: invoice-ocr-db
+    databaseName: invoice_ocr
+    user: invoice_ocr
+    plan: free          # PostgreSQL gratis (90 días; después migra a Neon.tech si quieres gratis permanente)
+
+services:
+  - type: web
+    name: invoice-ocr
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: invoice-ocr-db
+          property: connectionString
+      - key: ANTHROPIC_API_KEY
+        sync: false          # Lo introduces manualmente en el dashboard de Render
+      - key: ACCESS_KEY
+        sync: false          # Tu PIN de acceso a la app
+      - key: PYTHON_VERSION
+        value: "3.12"
