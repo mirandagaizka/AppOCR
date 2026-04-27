@@ -39,9 +39,14 @@ CREATE TABLE IF NOT EXISTS facturas (
 );
 """
 
-_CREATE_SQLITE = _CREATE_PG.replace("SERIAL", "INTEGER").replace(
-    "TIMESTAMPTZ", "TEXT"
-).replace("NUMERIC(14,2)", "REAL").replace("NUMERIC(6,2)", "REAL")
+_CREATE_SQLITE = (
+    _CREATE_PG
+    .replace("SERIAL", "INTEGER")
+    .replace("TIMESTAMPTZ", "TEXT")
+    .replace("DEFAULT NOW()", "DEFAULT CURRENT_TIMESTAMP")
+    .replace("NUMERIC(14,2)", "REAL")
+    .replace("NUMERIC(6,2)", "REAL")
+)
 
 _INSERT = """
 INSERT INTO facturas (
