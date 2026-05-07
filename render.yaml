@@ -16,8 +16,10 @@ services:
         fromDatabase:
           name: invoice-ocr-db
           property: connectionString
-      - key: ANTHROPIC_API_KEY
+      - key: GEMINI_API_KEY
         sync: false          # Lo introduces manualmente en el dashboard de Render
+      - key: GEMINI_MODEL
+        value: "gemini-2.5-flash"
       - key: ACCESS_KEY
         sync: false          # Tu PIN de acceso a la app
       - key: PYTHON_VERSION

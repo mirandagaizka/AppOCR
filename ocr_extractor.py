@@ -1,10 +1,14 @@
-import anthropic
 import base64
 import json
 import re
 import time
 import logging
-from pathlib import Path
+import mimetypes
+
+from google import genai
+from google.genai import types as genai_types
+
+from config import GEMINI_API_KEY, GEMINI_MODEL
 
 logger = logging.getLogger(__name__)
 
@@ -41,55 +45,150 @@ Fechas en formato YYYY-MM-DD. Importes como número decimal (1234.56).
   "moneda": "EUR"
 }"""
 
+# Esquema de respuesta para forzar JSON estructurado en Gemini
+RESPONSE_SCHEMA = {
+    "type": "OBJECT",
+    "properties": {
+        "numero_factura":     {"type": "STRING", "nullable": True},
+        "fecha_factura":      {"type": "STRING", "nullable": True},
+        "fecha_vencimiento":  {"type": "STRING", "nullable": True},
+        "emisor_nombre":      {"type": "STRING", "nullable": True},
+        "emisor_nif":         {"type": "STRING", "nullable": True},
+        "emisor_direccion":   {"type": "STRING", "nullable": True},
+        "receptor_nombre":    {"type": "STRING", "nullable": True},
+        "receptor_nif":       {"type": "STRING", "nullable": True},
+        "receptor_direccion": {"type": "STRING", "nullable": True},
+        "concepto":           {"type": "STRING", "nullable": True},
+        "base_imponible":     {"type": "NUMBER", "nullable": True},
+        "porcentaje_iva":     {"type": "NUMBER", "nullable": True},
+        "cuota_iva":          {"type": "NUMBER", "nullable": True},
+        "total":              {"type": "NUMBER", "nullable": True},
+        "forma_pago":         {"type": "STRING", "nullable": True},
+        "iban":               {"type": "STRING", "nullable": True},
+        "moneda":             {"type": "STRING", "nullable": True},
+    },
+    "required": SCHEMA_KEYS,
+}
+
 
 def _parse_json(text: str) -> dict:
-    text = text.strip()
+    """Parsea texto que se supone JSON. Tolera markdown fences y JSON truncado por límite de tokens."""
+    text = (text or "").strip()
+
+    # Quitar fences ```json ... ```
+    if text.startswith("```"):
+        text = re.sub(r"^```(?:json)?\s*", "", text)
+        text = re.sub(r"\s*```$", "", text).strip()
+
     try:
         return json.loads(text)
     except json.JSONDecodeError:
         pass
-    # Extraer JSON aunque haya texto alrededor
+
+    # Buscar el bloque {...} más amplio
     match = re.search(r'\{[\s\S]*\}', text)
     if match:
-        return json.loads(match.group())
-    raise ValueError(f"No se encontró JSON válido en la respuesta: {text[:300]}")
+        try:
+            return json.loads(match.group())
+        except json.JSONDecodeError:
+            pass
+
+    # Último recurso: si el JSON está truncado por max_tokens, cerrar llaves/corchetes pendientes
+    if text.startswith("{"):
+        opens_curly  = text.count("{") - text.count("}")
+        opens_square = text.count("[") - text.count("]")
+        # Quitar fragmento incompleto al final (coma colgando, valor a medias)
+        cleaned = re.sub(r",\s*$", "", text)
+        cleaned = re.sub(r":\s*[^,}\]]*$", ": null", cleaned)
+        cleaned += "]" * max(0, opens_square)
+        cleaned += "}" * max(0, opens_curly)
+        try:
+            return json.loads(cleaned)
+        except json.JSONDecodeError:
+            pass
+
+    raise ValueError(f"No se encontró JSON válido en la respuesta. Texto recibido ({len(text)} chars): {text[:1000]}")
+
+
+def _normalize_mime(mime_type: str) -> str:
+    if not mime_type:
+        return "image/jpeg"
+    if mime_type == "image/jpg":
+        return "image/jpeg"
+    return mime_type
 
 
 def extract_invoice_data(image_path: str, mime_type: str = "image/jpeg") -> dict:
-    """Extrae datos de factura desde imagen o PDF. Reintenta hasta 3 veces."""
+    """Extrae datos de factura desde imagen o PDF usando Gemini. Reintenta hasta 3 veces."""
+
+    if not GEMINI_API_KEY:
+        raise RuntimeError("Falta GEMINI_API_KEY en variables de entorno")
+
+    mime_type = _normalize_mime(mime_type)
 
     with open(image_path, "rb") as f:
-        encoded = base64.standard_b64encode(f.read()).decode("utf-8")
+        file_bytes = f.read()
 
-    if mime_type == "application/pdf":
-        content_block = {
-            "type": "document",
-            "source": {"type": "base64", "media_type": "application/pdf", "data": encoded},
-        }
-    else:
-        # Normalizar MIME — Telegram a veces envía image/jpg
-        if mime_type == "image/jpg":
-            mime_type = "image/jpeg"
-        content_block = {
-            "type": "image",
-            "source": {"type": "base64", "media_type": mime_type, "data": encoded},
-        }
+    client = genai.Client(api_key=GEMINI_API_KEY)
+
+    file_part = genai_types.Part.from_bytes(data=file_bytes, mime_type=mime_type)
+    prompt_part = genai_types.Part.from_text(text=PROMPT)
+
+    # Deshabilitar "thinking" si la versión del SDK lo soporta — la extracción de facturas
+    # no necesita razonamiento previo y libera todo el presupuesto de tokens para el JSON.
+    config_kwargs = dict(
+        temperature=0,
+        response_mime_type="application/json",
+        response_schema=RESPONSE_SCHEMA,
+        max_output_tokens=8192,
+    )
+    try:
+        config_kwargs["thinking_config"] = genai_types.ThinkingConfig(thinking_budget=0)
+    except (AttributeError, TypeError):
+        pass
+
+    config = genai_types.GenerateContentConfig(**config_kwargs)
 
     last_error = None
     for attempt in range(3):
         try:
-            client = anthropic.Anthropic()
-            message = client.messages.create(
-                model="claude-sonnet-4-6",
-                max_tokens=1024,
-                messages=[{
-                    "role": "user",
-                    "content": [content_block, {"type": "text", "text": PROMPT}],
-                }],
+            response = client.models.generate_content(
+                model=GEMINI_MODEL,
+                contents=[file_part, prompt_part],
+                config=config,
             )
-            result = _parse_json(message.content[0].text)
 
-            # Garantizar que todas las claves existen
+            # Diagnóstico: por qué terminó la generación (STOP, MAX_TOKENS, SAFETY...)
+            finish_reason = None
+            try:
+                finish_reason = response.candidates[0].finish_reason
+            except (IndexError, AttributeError):
+                pass
+
+            # Vía 1: el SDK ya devuelve el objeto parseado cuando hay response_schema
+            parsed = getattr(response, "parsed", None)
+            if isinstance(parsed, dict) and parsed:
+                result = parsed
+            else:
+                # Vía 2: parsear el .text manualmente
+                text = ""
+                if hasattr(response, "text") and response.text:
+                    text = response.text
+                else:
+                    try:
+                        text = response.candidates[0].content.parts[0].text or ""
+                    except Exception:
+                        pass
+
+                if not text:
+                    raise ValueError(f"Respuesta vacía de Gemini (finish_reason={finish_reason})")
+
+                try:
+                    result = _parse_json(text)
+                except ValueError as ve:
+                    logger.error("Texto crudo de Gemini (finish_reason=%s):\n%s", finish_reason, text)
+                    raise ve
+
             for key in SCHEMA_KEYS:
                 if key not in result:
                     result[key] = None

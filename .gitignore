@@ -1,5 +1,6 @@
 .env
 data/
+facturas/
 __pycache__/
 *.pyc
 *.pyo

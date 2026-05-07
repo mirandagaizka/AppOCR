@@ -1,7 +1,7 @@
 fastapi==0.115.12
 uvicorn[standard]==0.34.2
 python-multipart==0.0.20
-anthropic==0.52.0
+google-genai>=1.0.0,<2.0.0
 openpyxl==3.1.5
 reportlab==4.4.1
 python-dotenv==1.1.0

@@ -51,12 +51,24 @@
     <!-- SCAN SECTION -->
     <div id="scan-section" style="display:flex; flex-direction:column; gap:16px;">
 
-      <!-- Drop zone / cámara -->
+      <!-- Drop zone (drag & drop en escritorio) -->
       <div id="drop-zone" class="drop-zone">
-        <input id="file-input" type="file" accept="image/*,application/pdf" capture="environment" />
-        <div class="icon">📷</div>
-        <div class="label">Fotografía la factura</div>
-        <div class="hint">O arrastra un archivo JPG, PNG, WEBP o PDF</div>
+        <div class="icon">📄</div>
+        <div class="label">Selecciona o arrastra una factura</div>
+        <div class="hint">JPG, PNG, WEBP o PDF · máx. 20 MB</div>
+
+        <div class="source-buttons">
+          <button type="button" id="btn-camera" class="btn btn-primary">
+            <span aria-hidden="true">📷</span> Hacer foto
+          </button>
+          <button type="button" id="btn-browse" class="btn btn-secondary">
+            <span aria-hidden="true">📁</span> Subir archivo
+          </button>
+        </div>
+
+        <!-- Inputs ocultos: uno fuerza cámara (capture), el otro abre el explorador (multi-selección) -->
+        <input id="camera-input" type="file" accept="image/*" capture="environment" hidden />
+        <input id="file-input"   type="file" accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf" hidden multiple />
       </div>
 
       <!-- Preview -->
@@ -69,10 +81,25 @@
         </div>
       </div>
 
-      <!-- Spinner -->
+      <!-- Spinner (modo individual) -->
       <div id="status" style="display:none; flex-direction:column; align-items:center; gap:12px; padding:28px; background:var(--surface); border-radius:var(--radius); text-align:center;">
         <div class="spinner"></div>
         <div id="status-text" style="font-size:.95rem; color:var(--text-muted);">Procesando…</div>
+      </div>
+
+      <!-- Modo lote (batch) -->
+      <div id="batch-section" class="batch-section" style="display:none;">
+        <div class="batch-header">
+          <span id="batch-progress-text">0/0 procesadas</span>
+          <button id="btn-cancel-batch" class="btn btn-ghost btn-sm">Cancelar pendientes</button>
+        </div>
+        <div class="batch-progress-bar"><div id="batch-progress-fill" class="batch-progress-fill"></div></div>
+        <div id="batch-list" class="batch-list"></div>
+        <div id="batch-actions" class="batch-actions" style="display:none;">
+          <button id="btn-batch-zip"   class="btn btn-primary">Descargar todos los PDFs (ZIP)</button>
+          <button id="btn-batch-excel" class="btn btn-secondary">Descargar Excel</button>
+          <button id="btn-batch-reset" class="btn btn-ghost">Escanear más</button>
+        </div>
       </div>
 
       <!-- Resultado -->
@@ -80,10 +107,13 @@
         <div class="result-header" style="background:var(--success); padding:14px 20px; display:flex; align-items:center; gap:10px; font-weight:700;">
           <span>✓</span> Factura registrada correctamente
         </div>
+        <div class="result-hint" id="result-hint">Revisa los datos y edítalos si es necesario antes de descargar el PDF.</div>
         <div id="result-fields" class="result-body"></div>
-        <div class="result-actions" style="padding:0 20px 16px; display:flex; flex-direction:column; gap:10px;">
+        <div class="result-actions">
+          <button id="btn-save-changes" class="btn btn-primary" disabled>Guardar cambios</button>
           <button id="btn-download-pdf" class="btn btn-secondary">Descargar PDF</button>
-          <button id="btn-scan-another" class="btn btn-primary">Escanear otra factura</button>
+          <button id="btn-back-to-batch" class="btn btn-ghost" style="display:none;">← Volver al lote</button>
+          <button id="btn-scan-another" class="btn btn-ghost">Escanear otra factura</button>
         </div>
       </div>
 
@@ -95,6 +125,42 @@
         <h2>Registro de facturas</h2>
         <button id="btn-download-xls" class="btn btn-ghost btn-sm">⬇ Excel</button>
       </div>
+
+      <!-- Búsqueda y filtros -->
+      <div class="filters">
+        <input id="filter-q" class="filter-input" type="search" placeholder="Buscar por emisor, NIF, número, concepto…" />
+        <div class="filters-grid">
+          <label class="filter-field">
+            <span>Desde</span>
+            <input id="filter-from" type="date" />
+          </label>
+          <label class="filter-field">
+            <span>Hasta</span>
+            <input id="filter-to" type="date" />
+          </label>
+          <label class="filter-field">
+            <span>Total mín.</span>
+            <input id="filter-min" type="number" step="0.01" placeholder="0,00" />
+          </label>
+          <label class="filter-field">
+            <span>Total máx.</span>
+            <input id="filter-max" type="number" step="0.01" placeholder="∞" />
+          </label>
+        </div>
+        <div class="filters-bar">
+          <select id="filter-sort" class="filter-input filter-input-sm">
+            <option value="recent">Más recientes</option>
+            <option value="oldest">Más antiguas</option>
+            <option value="total_desc">Total ↓</option>
+            <option value="total_asc">Total ↑</option>
+            <option value="fecha_desc">Fecha factura ↓</option>
+            <option value="fecha_asc">Fecha factura ↑</option>
+          </select>
+          <button id="btn-clear-filters" class="btn btn-ghost btn-sm">Limpiar</button>
+          <span id="filter-count" class="filter-count"></span>
+        </div>
+      </div>
+
       <div id="inv-list" style="display:flex; flex-direction:column; gap:10px;"></div>
     </div>
 
