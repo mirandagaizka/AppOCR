@@ -2,6 +2,8 @@
 data/
 facturas/
 facturas.zip
+/images.png
+/xubi.jpg
 __pycache__/
 *.pyc
 *.pyo
