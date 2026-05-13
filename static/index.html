@@ -13,15 +13,18 @@
 </head>
 <body>
 
-<div class="app">
-  <header class="main-header">
-    <img src="/images.png" alt="Logo" class="header-logo header-logo-left" />
-    <div class="header-gradient">
-      <h1 class="header-title">Invoice OCR</h1>
-      <span class="header-subtitle">Escaneo automático de facturas</span>
+<nav class="navbar-custom">
+  <div class="navbar-inner">
+    <img src="/images.png" alt="Logo" class="navbar-logo navbar-logo-left" />
+    <div class="navbar-brand-center">
+      <span class="navbar-title">Invoice OCR</span>
+      <span class="navbar-subtitle">Escaneo automático de facturas</span>
     </div>
-    <img src="/xubi.jpg" alt="Xubi" class="header-logo header-logo-right" />
-  </header>
+    <img src="/xubi.jpg" alt="Xubi" class="navbar-logo navbar-logo-right" />
+  </div>
+</nav>
+
+<div class="app">
 
   <!-- AUTH SCREEN -->
   <div id="auth-screen" style="display:none; flex-direction:column; align-items:center; justify-content:center; gap:20px; flex:1; padding:32px 0;">
