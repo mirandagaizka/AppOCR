@@ -107,8 +107,26 @@
         <div class="result-header" style="background:var(--success); padding:14px 20px; display:flex; align-items:center; gap:10px; font-weight:700;">
           <span>✓</span> Factura registrada correctamente
         </div>
-        <div class="result-hint" id="result-hint">Revisa los datos y edítalos si es necesario antes de descargar el PDF.</div>
-        <div id="result-fields" class="result-body"></div>
+        <div class="result-hint" id="result-hint">Compara el original con los datos extraídos. Edita lo que haga falta antes de descargar.</div>
+
+        <div class="result-split">
+          <!-- Columna izquierda: original -->
+          <div class="result-preview">
+            <div class="result-preview-title">Documento original</div>
+            <div id="result-preview-content" class="result-preview-content">
+              <iframe   id="result-preview-iframe" class="result-preview-iframe" style="display:none;"></iframe>
+              <img      id="result-preview-img"    class="result-preview-img"    style="display:none;" alt="Vista previa" />
+              <div      id="result-preview-empty"  class="result-preview-empty">Original no disponible (la factura proviene del registro y no se subió ahora).</div>
+            </div>
+          </div>
+
+          <!-- Columna derecha: campos editables -->
+          <div class="result-fields-col">
+            <div class="result-fields-title">Datos extraídos</div>
+            <div id="result-fields" class="result-body"></div>
+          </div>
+        </div>
+
         <div class="result-actions">
           <button id="btn-save-changes" class="btn btn-primary" disabled>Guardar cambios</button>
           <button id="btn-download-pdf" class="btn btn-secondary">Descargar PDF</button>

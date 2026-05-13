@@ -1,6 +1,7 @@
 .env
 data/
 facturas/
+facturas.zip
 __pycache__/
 *.pyc
 *.pyo

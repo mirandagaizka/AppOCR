@@ -10,6 +10,9 @@ const STATE = {
   dirty: false,
   view: "scan",              // "scan" | "registry"
 
+  // Vista previa del original en el panel de resultado
+  previewBlobUrl: null,
+
   // Batch
   batch: {
     items: [],               // [{file, status: 'pending'|'processing'|'done'|'error'|'duplicate', id?, pdf_url?, error?}]
@@ -62,6 +65,11 @@ const btnCancelBatch    = $("btn-cancel-batch");
 const btnBatchZip       = $("btn-batch-zip");
 const btnBatchExcel     = $("btn-batch-excel");
 const btnBatchReset     = $("btn-batch-reset");
+
+// Result preview (split view)
+const resultPreviewIframe = $("result-preview-iframe");
+const resultPreviewImg    = $("result-preview-img");
+const resultPreviewEmpty  = $("result-preview-empty");
 
 // Filters UI
 const filterQ    = $("filter-q");
@@ -209,10 +217,48 @@ function resetScan() {
   fileInput.value = "";
   cameraInput.value = "";
   previewImg.src = "";
+  clearResultPreview();
   dropZone.style.display = "block";
   previewWrap.style.display = "none";
   statusEl.style.display = "none";
   resultEl.style.display = "none";
+}
+
+// ─── Preview del original en el panel de resultado ──────────────────────────
+function setResultPreview(file) {
+  clearResultPreview();
+  if (!file) {
+    resultPreviewEmpty.style.display = "block";
+    return;
+  }
+  const url = URL.createObjectURL(file);
+  STATE.previewBlobUrl = url;
+
+  if (file.type === "application/pdf") {
+    resultPreviewIframe.src = url;
+    resultPreviewIframe.style.display = "block";
+    resultPreviewImg.style.display = "none";
+    resultPreviewEmpty.style.display = "none";
+  } else if (file.type && file.type.startsWith("image/")) {
+    resultPreviewImg.src = url;
+    resultPreviewImg.style.display = "block";
+    resultPreviewIframe.style.display = "none";
+    resultPreviewEmpty.style.display = "none";
+  } else {
+    resultPreviewEmpty.style.display = "block";
+  }
+}
+
+function clearResultPreview() {
+  if (STATE.previewBlobUrl) {
+    try { URL.revokeObjectURL(STATE.previewBlobUrl); } catch {}
+    STATE.previewBlobUrl = null;
+  }
+  resultPreviewIframe.src = "";
+  resultPreviewIframe.style.display = "none";
+  resultPreviewImg.src = "";
+  resultPreviewImg.style.display = "none";
+  resultPreviewEmpty.style.display = "block";
 }
 
 // ─── Procesar factura ─────────────────────────────────────────────────────────
@@ -247,7 +293,7 @@ async function processInvoice(forceParam = false) {
       return;
     }
 
-    renderResult(result.data, result.pdf_url, result.id);
+    renderResult(result.data, result.pdf_url, result.id, STATE.currentFile);
 
   } catch (err) {
     statusEl.style.display = "none";
@@ -346,13 +392,14 @@ function inputValueFor(key, val) {
   return String(val);
 }
 
-function renderResult(data, pdfUrl, invoiceId) {
+function renderResult(data, pdfUrl, invoiceId, originalFile = null) {
   resultFields.innerHTML = "";
   STATE.currentData = { ...data };
   STATE.currentInvoiceId = invoiceId ?? null;
   STATE.lastPdfUrl = pdfUrl;
   STATE.dirty = false;
   setSaveButtonState();
+  setResultPreview(originalFile);
 
   for (const [key, label] of Object.entries(FIELD_LABELS)) {
     if (key === "moneda") continue;
@@ -757,7 +804,7 @@ async function openBatchItem(idx) {
   batchSection.style.display = "none";
   btnBackToBatch.style.display = "";
   btnScanAnother.style.display = "none";
-  renderResult(item.data, item.pdf_url, item.id);
+  renderResult(item.data, item.pdf_url, item.id, item.file || null);
 }
 
 function backToBatch() {
@@ -766,6 +813,7 @@ function backToBatch() {
     if (!window.confirm("Tienes cambios sin guardar. ¿Volver al lote y descartarlos?")) return;
   }
   resultEl.style.display = "none";
+  clearResultPreview();
   btnBackToBatch.style.display = "none";
   btnScanAnother.style.display = "";
   batchSection.style.display = "flex";
